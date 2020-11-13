@@ -14,6 +14,9 @@ from tensorflow.keras.layers import GlobalMaxPooling2D, Dense,Flatten
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint,EarlyStopping,ReduceLROnPlateau
 from tensorflow.keras import Sequential
 from tensorflow.keras.applications.xception import Xception
+import time
+import random
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 #directorios
 training = './archive/boneage-training-dataset/boneage-training-dataset'
@@ -93,7 +96,9 @@ callbacks = [cb, earlyStop, modelCheckpoint, reducir_lr]
 
 
 #Prediciendo el modelo
-fitModel = modelo2.fit(trainGen, steps_per_epoch = 315, validation_data = valGen, validation_steps = 1, epochs = 50)
+#fitModel = modelo2.fit(trainGen, steps_per_epoch = 315, validation_data = valGen, validation_steps = 1, epochs = 50)
+
+start_time = time.time()
 
 modelo2.load_weights('modelo.h5')
 
@@ -103,11 +108,36 @@ testMeses = media + desviacionS * testY
 ordInd = np.argsort(testY)
 ordInd = ordInd[np.linspace(0, len(ordInd)- 1, 8).astype(int)]
 
-fig, axS = plt.subplots(4, 2, figsize = (15, 30))
+print(ordInd, "----------------")
 
-for(ind, ax) in zip(ordInd, axS.flatten()):
-    ax.imshow(testX[ind, :, :, 0], camp = 'bone')
-    ax.set_title('Edad: %f\nPrediccion: %f' % (testMeses[ind]/12.0, prediccion[ind]/12.0))
-    ax.axis('off')
 
-fig.savefig('prediccion_imagen.png', dpi = 300)
+
+ind = []
+num = int(abs((len(testX) - 1) * 0.66))
+
+for i in range(num):
+    ind.append(random.randint(0, len(testX) - 1))
+
+
+
+print("Error medio absoluto: ", mean_absolute_error(testMeses, prediccion))
+
+#Mostrando cada imagen
+for i in range(len(ind)):
+    fig, axS = plt.subplots()
+    axS.imshow(testX[ind[i], :, :, 0], cmap = 'bone')
+    axS.set_title('Edad: %f\nPrediccion: %f' % (testMeses[ind[i]]/12.0, prediccion[ind[i]]/12.0))
+    axS.axis('off')
+        
+
+    print((time.time() - start_time), " segundos")
+
+    fig.savefig(('prediccion_imagen'+str(i)+'.png'), dpi = 300)
+
+#Accuracy y grafica de regresion
+print("accuracy: ", mean_squared_error(testMeses, prediccion))
+plt.scatter(testMeses, prediccion)
+
+m, b = np.polyfit(testMeses, prediccion, 1)
+plt.plot(testMeses, m*testMeses + b)
+plt.show()
