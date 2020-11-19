@@ -41,12 +41,16 @@ sb.countplot(x = train['gender'])
 media = train['boneage'].mean()
 desviacionS = train['boneage'].std()
 
+print("media: ", media) 
+print("desviacion: ", desviacionS)
+
 train['val_z'] = (train['boneage'] - media) / desviacionS
 
-print(train.head())
+
 
 #Separando dataframe
 df_train, df_val = train_test_split(train, test_size = 0.25, random_state = 0)
+
 
 imgSize = 256
 
@@ -63,6 +67,8 @@ testDataGenerator = ImageDataGenerator(preprocessing_function = preprocess_input
 testGen = testDataGenerator.flow_from_directory(directory = testing, shuffle = True, class_mode = None, color_mode = 'rgb', target_size = (imgSize, imgSize))
 
 testX, testY = next(validationDataGenerator.flow_from_dataframe(dataframe = df_val, directory = training, x_col = 'id', y_col = 'val_z', target_size = (imgSize, imgSize), batch_size = 2523, class_mode = 'raw'))
+
+
 
 def mae(xP, yP):
     return mean_absolute_error((desviacionS * xP + media), (desviacionS * yP + media))
@@ -82,7 +88,7 @@ modelo2.compile(loss = 'mse', optimizer = 'adam', metrics = [mae])
 
 print(modelo2.summary())
 
-#Guardande el modelo
+#Guardando el modelo
 earlyStop = EarlyStopping(monitor = 'val_loss', min_delta = 0, patience = 5, verbose = 0, mode = 'auto')
 modelCheckpoint = ModelCheckpoint('modelo.h5', monitor = 'val_loss', mode = 'min', save_best_only = True)
 #, datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -123,21 +129,25 @@ for i in range(num):
 print("Error medio absoluto: ", mean_absolute_error(testMeses, prediccion))
 
 #Mostrando cada imagen
-for i in range(len(ind)):
-    fig, axS = plt.subplots()
-    axS.imshow(testX[ind[i], :, :, 0], cmap = 'bone')
-    axS.set_title('Edad: %f\nPrediccion: %f' % (testMeses[ind[i]]/12.0, prediccion[ind[i]]/12.0))
-    axS.axis('off')
+#for i in range(len(ind)):
+#    fig, axS = plt.subplots()
+#    axS.imshow(testX[ind[i], :, :, 0], cmap = 'bone')
+#    axS.set_title('Edad: %f\nPrediccion: %f' % (testMeses[ind[i]]/12.0, prediccion[ind[i]]/12.0))
+#    axS.axis('off')
         
 
-    print((time.time() - start_time), " segundos")
+#    print((time.time() - start_time), " segundos")
 
-    fig.savefig(('prediccion_imagen'+str(i)+'.png'), dpi = 300)
+#    fig.savefig(('prediccion_imagen'+str(i)+'.png'), dpi = 300)
 
 #Accuracy y grafica de regresion
 print("accuracy: ", mean_squared_error(testMeses, prediccion))
-plt.scatter(testMeses, prediccion)
+plt.clf()
+plt.scatter(prediccion, testMeses)
 
 m, b = np.polyfit(testMeses, prediccion, 1)
-plt.plot(testMeses, m*testMeses + b)
+plt.plot(testMeses, m*testMeses + b, color = 'red')
+plt.xlabel('Datos reales')
+plt.ylabel('Prediccion')
+plt.title('Regresion lineal de Xception')
 plt.show()
